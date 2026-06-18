@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chocolab — Painel Financeiro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Chocolab brand — extraído do site */
+  --chocolate:   #3B2B16;
+  --chocolate-dk:#241A0D;
+  --chocolate-md:#5C3D1E;
+  --caramelo:    #C17C3A;
+  --dourado:     #E8A84B;
+  --dourado-lt:  #F5C97A;
+  --creme:       #FBF5EC;
+  --creme-escuro:#F0E4D0;
+  --off-white:   #FFFFFF;
+  --verde:       #2A7A50;
+  --verde-lt:    #E6F4EE;
+  --vermelho:    #B53535;
+  --vermelho-lt: #FDEAEA;
+  --amarelo:     #D97706;
+  --amarelo-lt:  #FEF3C7;
+  --borda:       #E4D5BC;
+  --texto:       #1C1008;
+  --texto-sec:   #7A5C3E;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--creme);
+  color: var(--texto);
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--chocolate-dk);
+  border-bottom: 1px solid rgba(232,168,75,.15);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  height: 58px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  gap: 0;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 24px;
+  margin-right: 8px;
+  border-right: 1px solid rgba(255,255,255,.1);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.brand-logo {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+.brand-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+  white-space: nowrap;
+}
+.nav-tabs {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: 4px;
+  flex: 1;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,.5);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .18s;
+  white-space: nowrap;
+  user-select: none;
+  gap: 7px;
+}
+.tab:hover { color: rgba(255,255,255,.85); }
+.tab.active { color: var(--dourado); border-bottom-color: var(--dourado); }
+.tab-icon { font-size: 15px; }
+
+/* ── LAYOUT ── */
+.view { display: none; padding: 28px 28px 48px; max-width: 1440px; margin: 0 auto; }
+.view.active { display: block; }
+
+/* ── DROP ZONE ── */
+.import-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--off-white);
+  border: 1.5px dashed var(--borda);
+  border-radius: 12px;
+  padding: 16px 22px;
+  margin-bottom: 24px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.import-bar:hover { border-color: var(--borda); }
+.import-bar-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--creme-escuro);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.import-bar-text strong { font-size: 13px; font-weight: 700; color: var(--chocolate); display: block; }
+.import-bar-text span { font-size: 11.5px; color: var(--texto-sec); }
+.import-bar-badge {
+  margin-left: auto;
+  background: var(--verde-lt);
+  color: var(--verde);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: none;
+}
+.import-bar-badge.visible { display: block; }
+.btn-reload {
+  margin-left: auto; background: transparent; border: 1px solid var(--borda);
+  border-radius: 7px; padding: 6px 14px; font-size: 12px; font-weight: 600;
+  cursor: pointer; color: var(--texto-sec); font-family: var(--sans);
+  transition: all .18s; white-space: nowrap; flex-shrink: 0;
+}
+.btn-reload:hover { border-color: var(--caramelo); color: var(--chocolate); background: var(--creme-escuro); }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.page-header h1 {
+  font-size: 20px; font-weight: 700; color: var(--chocolate); letter-spacing: -.02em;
+}
+.page-header p { font-size: 12px; color: var(--texto-sec); margin-top: 3px; }
+.saldo-pill {
+  background: var(--chocolate-dk);
+  color: var(--dourado);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  white-space: nowrap;
+  border: 1px solid rgba(232,168,75,.2);
+}
+
+/* ── KPI GRID ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.kpi {
+  background: var(--off-white);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.kpi-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--texto-sec); margin-bottom: 7px;
+}
+.kpi-value {
+  font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--chocolate);
+}
+.kpi-value.pos { color: var(--verde); }
+.kpi-value.neg { color: var(--vermelho); }
+.kpi-sub { font-size: 11px; color: var(--texto-sec); margin-top: 4px; }
+
+/* ── SALDO MENSAL ── */
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--texto-sec); margin-bottom: 11px; margin-top: 26px;
+}
+.saldo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px;
+}
+.saldo-card {
+  background: var(--off-white);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 13px 14px;
+}
+.saldo-card-mes { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-sec); margin-bottom: 5px; }
+.saldo-card-valor { font-family: var(--mono); font-size: 13.5px; font-weight: 600; }
+.saldo-bar-wrap { height: 4px; background: var(--creme-escuro); border-radius: 2px; margin-top: 7px; overflow: hidden; }
+.saldo-bar { height: 100%; border-radius: 2px; transition: width .4s ease; }
+.saldo-status { font-size: 9.5px; font-weight: 700; margin-top: 5px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── TABELA DFC ── */
+.table-wrap {
+  background: var(--off-white);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  background: var(--chocolate-dk);
+  color: rgba(255,255,255,.75);
+  font-weight: 600; font-size: 10.5px; letter-spacing: .05em;
+  padding: 10px 13px; text-align: right; white-space: nowrap;
+}
+th:first-child { text-align: left; min-width: 205px; }
+td {
+  padding: 7px 13px; text-align: right;
+  font-family: var(--mono); font-size: 11.5px;
+  border-bottom: 1px solid var(--borda); color: var(--texto); white-space: nowrap;
+}
+td:first-child { text-align: left; font-family: var(--sans); font-size: 12px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fdf8f2; }
+.r-sub td  { background: var(--creme-escuro); font-weight: 600; color: var(--chocolate); }
+.r-tot td  { background: var(--chocolate-dk); color: var(--dourado-lt); font-weight: 700; }
+.r-tot td:first-child { font-family: var(--sans); }
+.r-sec td  { background: var(--creme); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--caramelo); font-family: var(--sans); padding-top: 11px; }
+.r-var td  { background: #1C0E04; color: var(--dourado); font-weight: 700; }
+.r-sf  td  { background: var(--caramelo); color: #fff; font-weight: 700; }
+.r-si  td  { background: var(--creme-escuro); color: var(--chocolate); font-weight: 600; }
+.pos { color: var(--verde); }
+.neg { color: var(--vermelho); }
+.warn { color: var(--amarelo); }
+
+/* ── BANCOS ── */
+.banco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 13px;
+  margin-bottom: 22px;
+}
+.banco-card {
+  background: var(--off-white); border: 1px solid var(--borda);
+  border-radius: 12px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 11px;
+}
+.banco-nome {
+  font-size: 13px; font-weight: 700; color: var(--chocolate);
+  display: flex; align-items: center; gap: 9px;
+}
+.banco-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--creme-escuro);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.banco-saldo-label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--texto-sec); font-weight: 700; margin-bottom: 4px; }
+.banco-input {
+  font-family: var(--mono); font-size: 18px; font-weight: 600;
+  color: var(--chocolate); border: 1.5px solid transparent;
+  background: var(--creme); border-radius: 8px; padding: 9px 13px;
+  width: 100%; outline: none; transition: all .18s;
+}
+.banco-input:focus { border-color: var(--caramelo); background: var(--off-white); }
+
+.total-strip {
+  background: var(--chocolate-dk);
+  border: 1px solid rgba(232,168,75,.2);
+  border-radius: 12px;
+  padding: 18px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 22px; flex-wrap: wrap; gap: 12px;
+}
+.total-strip-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(255,255,255,.5); }
+.total-strip-valor { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--dourado); }
+.btn-salvar {
+  background: var(--caramelo); color: #fff;
+  border: none; border-radius: 8px;
+  padding: 10px 22px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: var(--sans);
+  transition: background .18s; letter-spacing: .03em;
+}
+.btn-salvar:hover { background: var(--dourado); }
+
+.info-box {
+  background: var(--amarelo-lt); border: 1px solid #FCD34D;
+  border-radius: 10px; padding: 13px 17px; font-size: 12.5px;
+  color: #78350F; margin-bottom: 18px;
+  display: flex; gap: 9px; align-items: flex-start;
+}
+
+/* ── NECESSIDADE ── */
+.mes-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.mes-pill {
+  padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--borda); background: var(--off-white);
+  font-size: 11px; font-weight: 600; cursor: pointer; color: var(--texto-sec);
+  transition: all .15s;
+}
+.mes-pill.active { background: var(--chocolate-dk); color: var(--dourado); border-color: var(--chocolate-dk); }
+
+.sem-table { background: var(--off-white); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
+.sem-header {
+  background: var(--chocolate-dk); color: rgba(255,255,255,.65);
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  padding: 10px 16px;
+  display: grid; grid-template-columns: 72px 1fr 1fr 1fr 165px; gap: 8px;
+}
+.sem-row {
+  display: grid; grid-template-columns: 72px 1fr 1fr 1fr 165px; gap: 8px;
+  padding: 9px 16px; border-bottom: 1px solid var(--borda);
+  align-items: center; font-size: 11.5px; transition: background .1s;
+}
+.sem-row:last-child { border-bottom: none; }
+.sem-row:hover { background: #fdf8f2; }
+.sem-row .sem-label { font-weight: 700; color: var(--chocolate); }
+.sem-row .mono { font-family: var(--mono); font-size: 11.5px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.pill-ok  { background: var(--verde-lt);   color: var(--verde); }
+.pill-neg { background: var(--vermelho-lt); color: var(--vermelho); }
+.pill-aviso { background: var(--amarelo-lt); color: #92400E; }
+
+/* ── EMPTY STATE ── */
+.empty {
+  text-align: center; padding: 60px 20px; color: var(--texto-sec);
+}
+.empty-icon { font-size: 40px; margin-bottom: 14px; }
+.empty h2 { font-size: 16px; font-weight: 700; color: var(--chocolate); margin-bottom: 7px; }
+.empty p { font-size: 13px; line-height: 1.65; }
+
+.footer-note { font-size: 11px; color: var(--texto-sec); padding-top: 14px; border-top: 1px solid var(--borda); margin-top: 26px; }
+
+@media (max-width: 680px) {
+  .view { padding: 16px 14px 40px; }
+  .sem-header, .sem-row { grid-template-columns: 60px 1fr 1fr; }
+  .sem-header > *:nth-child(4), .sem-row > *:nth-child(4),
+  .sem-header > *:nth-child(5), .sem-row > *:nth-child(5) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<div class="topbar">
+  <a class="brand" href="https://www.chocolab.tech" target="_blank" rel="noopener">
+    <img class="brand-logo"
+      src="https://www.chocolab.tech/cdn/shop/files/logo_63f094ac-a66b-4455-90bb-445b2cd746e4.png?v=1761227112"
+      alt="Chocolab"
+      onerror="this.style.display='none'; this.nextElementSibling.textContent='🍫 CHOCOLAB'">
+    <span class="brand-label">Painel Financeiro</span>
+  </a>
+  <div class="nav-tabs">
+    <div class="tab active" onclick="goTab('painel',this)"><span class="tab-icon">📊</span> Painel DFC</div>
+    <div class="tab" onclick="goTab('saldos',this)"><span class="tab-icon">🏦</span> Saldos Bancários</div>
+    <div class="tab" onclick="goTab('necessidade',this)"><span class="tab-icon">📅</span> Necessidade Diária</div>
+  </div>
+</div>
+
+<!-- ══ ABA PAINEL ══ -->
+<div id="view-painel" class="view active">
+
+  <div class="import-bar" id="status-bar">
+    <div class="import-bar-icon" id="status-icon">⏳</div>
+    <div class="import-bar-text">
+      <strong>DFC_CHOCOLAB_Integrada.xlsx</strong>
+      <span id="status-text">Carregando dados do Google Drive…</span>
+    </div>
+    <button class="btn-reload" onclick="carregarDrive()">🔄 Atualizar</button>
+  </div>
+
+  <div id="painel-body">
+    <div class="empty">
+      <div class="empty-icon">⏳</div>
+      <h2>Carregando dados…</h2>
+      <p>Buscando o arquivo <strong>DFC_CHOCOLAB_Integrada.xlsx</strong> do Google Drive.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ABA SALDOS ══ -->
+<div id="view-saldos" class="view">
+  <div class="page-header">
+    <div>
+      <h1>Saldos Bancários</h1>
+      <p>Atualize os saldos de cada conta. O total vira o saldo inicial do Painel DFC.</p>
+    </div>
+  </div>
+  <div class="info-box">
+    <span>⚡</span>
+    <div>O <strong>total consolidado</strong> é usado como <strong>Saldo Inicial de Caixa</strong> no Painel DFC. Salve sempre com o saldo do dia.</div>
+  </div>
+  <div class="total-strip">
+    <div>
+      <div class="total-strip-label">Total Consolidado → Saldo Inicial DFC</div>
+      <div class="total-strip-valor" id="total-saldos">R$ 0,00</div>
+    </div>
+    <button class="btn-salvar" onclick="salvarSaldos()">Salvar e Atualizar Painel</button>
+  </div>
+  <div class="banco-grid" id="banco-grid"></div>
+</div>
+
+<!-- ══ ABA NECESSIDADE ══ -->
+<div id="view-necessidade" class="view">
+  <div class="page-header">
+    <div>
+      <h1>Necessidade de Caixa — Visão Semanal</h1>
+      <p>Projeção semanal de entradas, saídas e saldo acumulado para cada mês.</p>
+    </div>
+  </div>
+  <div id="nec-body">
+    <div class="empty">
+      <div class="empty-icon">📅</div>
+      <h2>Importe o Excel primeiro</h2>
+      <p>Vá à aba <strong>Painel DFC</strong> e carregue o arquivo.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   ESTADO
+══════════════════════════════════ */
+let DFC = null;
+let mesSel = new Date().getMonth();
+const MESES = ['Jan/26','Fev/26','Mar/26','Abr/26','Mai/26','Jun/26','Jul/26','Ago/26','Set/26','Out/26','Nov/26','Dez/26'];
+
+let BANCOS = [
+  {id:'caixa',       nome:'Caixa',               icon:'💵', saldo:0},
+  {id:'bb',          nome:'Banco do Brasil',      icon:'🏦', saldo:0},
+  {id:'mp',          nome:'Mercado Pago',         icon:'💳', saldo:0},
+  {id:'olist',       nome:'Olist Conta Digital',  icon:'🛒', saldo:0},
+  {id:'pagarme',     nome:'Pagar.me',             icon:'💸', saldo:0},
+  {id:'pagseguro',   nome:'PagSeguro S.A.',       icon:'📱', saldo:0},
+  {id:'rec_pagarme', nome:'Receb. Pagar.me',      icon:'📥', saldo:0},
+  {id:'santander',   nome:'Santander',            icon:'🏛️', saldo:0},
+  {id:'sant_poupa',  nome:'Santander Poupança',   icon:'🐖', saldo:0},
+  {id:'nubank',      nome:'Nubank',               icon:'🟣', saldo:0},
+];
+
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+function fmt(v, cor=false) {
+  if (v===null||v===undefined||isNaN(v)) return '—';
+  const abs = Math.abs(v);
+  const s = 'R$ '+abs.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (!cor) return v<0?'('+s+')':s;
+  if (v<0)  return '<span class="neg">('+s+')</span>';
+  if (v===0) return '<span style="color:#ccc">—</span>';
+  return '<span class="pos">'+s+'</span>';
+}
+function n(v){ return (typeof v==='number'&&!isNaN(v))?v:0; }
+function sum(arr){ return arr.reduce((a,b)=>a+n(b),0); }
+function getSI(){
+  // Use live BANCOS array as source of truth (updated by import and save)
+  const fromBancos = sum(BANCOS.map(b=>b.saldo));
+  if (fromBancos !== 0) return fromBancos;
+  // Fallback: localStorage (covers case where all banks are genuinely zero)
+  const s = localStorage.getItem('cl_saldo');
+  return s !== null ? parseFloat(s) : 0;
+}
+function loadBancos(){
+  const s=localStorage.getItem('cl_bancos');
+  if(s){const d=JSON.parse(s);BANCOS=BANCOS.map(b=>({...b,saldo:d[b.id]||b.saldo}));}
+}
+
+/* ══════════════════════════════════
+   ROW MAP — índices 0-based, DFC começa em col B
+   XLSX.js: row[0]=desc(B), row[1]=Jan(C)...row[11]=Dez(N)
+══════════════════════════════════ */
+const ROW_MAP = {
+  vendas_cartao:6, vendas_pix:7, vendas_boleto:8, vendas_dep:9,
+  outros_rec:13, reembolsos:14, captacao:15,
+  compras_imp:21, compras_mp:22, imp_importacao:23, frete_imp:24,
+  frete_vendas:25, frete_manutencao:26,
+  folha:30, fgts:31, inss:32, beneficios:33, seguranca:34,
+  simples:38, marketing:42, feiras:43,
+  contabilidade:47, sistemas:48, cartao_corp:49, reembolsos_sai:50, tarifas:51,
+  devolucoes:55, emprestimos:62, distribuicao:66,
+  saldo_inicial_excel:69  // row 70 in Excel = "(+) Saldo inicial de caixa"
+};
+
+const ENT_KEYS = ['vendas_cartao','vendas_pix','vendas_boleto','vendas_dep','outros_rec','reembolsos','captacao'];
+const SAI_KEYS = ['compras_imp','compras_mp','imp_importacao','frete_imp','frete_vendas','frete_manutencao',
+                  'folha','fgts','inss','beneficios','seguranca','simples',
+                  'marketing','feiras','contabilidade','sistemas','cartao_corp','reembolsos_sai','tarifas','devolucoes'];
+
+/* ══════════════════════════════════
+   IMPORTAR EXCEL
+══════════════════════════════════ */
+function parseNum(v){
+  if(v===null||v===''||v===undefined) return 0;
+  const s=String(v).replace(/\s/g,'').replace(/\xa0/g,'');
+  // handles both "1.234,56" and "1234.56"
+  const hasBrFmt = s.includes(',')&&(s.indexOf(',')>s.indexOf('.')||!s.includes('.'));
+  const clean = hasBrFmt ? s.replace(/\./g,'').replace(',','.') : s.replace(',','');
+  const p=parseFloat(clean);
+  return isNaN(p)?0:p;
+}
+
+function lerDFC(wb){
+  const ws=wb.Sheets['DFC - CHOCOLAB'];
+  if(!ws) return false;
+  // raw:true to avoid date coercion on numeric cells
+  const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:0,raw:true});
+  const result={};
+  Object.entries(ROW_MAP).forEach(([key,ri])=>{
+    const row=data[ri]||[];
+    // Sheet ref B1:P72 → XLSX.js row[0]=col B (desc), row[1]=col C (Jan)...row[11]=col N (Dez)
+    result[key]=Array.from({length:12},(_,i)=>parseNum(row[i+1]));
+  });
+  DFC=result;
+  return true;
+}
+
+function lerSaldosBancarios(wb){
+  const ws=wb.Sheets['Saldos'];
+  if(!ws) return;
+  // Saldos sheet starts at col A: row[0]=conta, row[1]=banco, row[2..n]=months (last = most recent)
+  const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+  const map={
+    'Caixa':'caixa','Banco do Brasil':'bb','Mercado Pago':'mp',
+    'Olist Conta Digital':'olist','Pagar.me':'pagarme',
+    'PagSeguro S.A.':'pagseguro','Recebimentos Pagar.me':'rec_pagarme',
+    'Santander':'santander','Santander Poupança':'sant_poupa','Nubank':'nubank'
+  };
+  data.forEach(row=>{
+    if(!row||!row[1]) return;
+    const id=map[String(row[1]).trim()];
+    if(!id) return;
+    // Walk from the last column backwards to find the most recent non-null cell
+    let last=null;
+    for(let c=row.length-1;c>=2;c--){
+      if(row[c]!==null && row[c]!==undefined && String(row[c]).trim()!==''){
+        last=parseNum(row[c]);
+        break;
+      }
+    }
+    const b=BANCOS.find(x=>x.id===id);
+    if(b && last!==null) b.saldo=last;
+  });
+}
+
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJ2mo7hjpNqLRlZz4fA7wvZORloBpRuvkrCIZ418WBfOxKm_vSHNxQMUyOYOoVPOtyfA/exec';
+
+function setStatus(icon, text){
+  document.getElementById('status-icon').textContent = icon;
+  document.getElementById('status-text').textContent = text;
+}
+
+async function carregarDrive(){
+  setStatus('⏳', 'Buscando arquivo no Google Drive…');
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const base64 = await resp.text();
+    const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const wb = XLSX.read(binary, {type:'array'});
+    const ok = lerDFC(wb);
+    lerSaldosBancarios(wb);
+    if(ok){
+      const total = sum(BANCOS.map(b=>b.saldo));
+      localStorage.setItem('cl_saldo', total.toString());
+      const bd={}; BANCOS.forEach(b=>bd[b.id]=b.saldo);
+      localStorage.setItem('cl_bancos', JSON.stringify(bd));
+      const agora = new Date().toLocaleString('pt-BR');
+      setStatus('✅', 'Atualizado em ' + agora + ' · Google Drive');
+      renderPainel(); renderSaldos(); renderNec();
+    } else {
+      setStatus('❌', 'Aba "DFC - CHOCOLAB" não encontrada no arquivo.');
+    }
+  } catch(err) {
+    setStatus('❌', 'Erro ao carregar: ' + err.message);
+    document.getElementById('painel-body').innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">❌</div>
+        <h2>Não foi possível carregar os dados</h2>
+        <p>Erro: <strong>${err.message}</strong><br><br>
+        Possíveis causas:<br>
+        • O Apps Script não está configurado como público<br>
+        • A URL do script expirou — gere uma nova implantação<br><br>
+        Clique em <strong>🔄 Atualizar</strong> após corrigir.</p>
+      </div>`;
+    console.error(err);
+  }
+}
+
+/* ══════════════════════════════════
+   CÁLCULOS
+══════════════════════════════════ */
+function calcMes(){
+  if(!DFC) return null;
+  const siBanco = getSI(); // saldo bancário atual (mês mais recente da aba Saldos)
+  const ent=[],sai=[],liq=[],var_=[],sf=[],si_arr=[];
+
+  // Build saldo inicial array:
+  // - Use values from DFC row 70 ("Saldo inicial de caixa") where they exist (past months)
+  // - For months with zero/null in row 70, carry forward from the last known value
+  // The last non-zero value in saldo_inicial_excel is the bank balance month,
+  // from there we project forward using variacoes.
+  const siExcel = DFC.saldo_inicial_excel || Array(12).fill(0);
+
+  // Find the last month that has a real saldo inicial in the Excel
+  let lastRealIdx = -1;
+  for(let i=11;i>=0;i--){ if(n(siExcel[i])!==0){ lastRealIdx=i; break; } }
+
+  for(let i=0;i<12;i++){
+    const e=sum(ENT_KEYS.map(k=>DFC[k][i]));
+    const s=sum(SAI_KEYS.map(k=>DFC[k][i]));
+    const fin=n(DFC.emprestimos[i]), dis=n(DFC.distribuicao[i]);
+    const l=e-s, v=l-fin-dis;
+
+    // Saldo inicial: use Excel value if available, else carry forward
+    let si_mes;
+    if(n(siExcel[i])!==0){
+      // Past month: use the real saldo from the Excel (from Saldos sheet)
+      si_mes = n(siExcel[i]);
+    } else if(i===0){
+      // Jan with no Excel saldo: use bank balance
+      si_mes = siBanco;
+    } else {
+      // Future month: carry forward from previous saldo final
+      si_mes = sf[i-1];
+    }
+
+    const f = si_mes + v;
+    ent.push(e); sai.push(s); liq.push(l); var_.push(v); sf.push(f); si_arr.push(si_mes);
+  }
+  return {ent,sai,liq,var:var_,sf,si_arr};
+}
+
+/* ══════════════════════════════════
+   RENDER PAINEL
+══════════════════════════════════ */
+function renderPainel(){
+  if(!DFC) return;
+  const si=getSI(), c=calcMes();
+  const {ent,sai,liq,sf,si_arr} = c; const var_=c.var;
+  const tE=sum(ent), tS=sum(sai);
+  const mi=sf.indexOf(Math.max(...sf)), pi=sf.indexOf(Math.min(...sf));
+  const neg=sf.filter(x=>x<0).length;
+
+  let h=`
+  <div class="page-header">
+    <div><h1>Fluxo de Caixa — CHOCOLAB</h1><p>Método Direto · Base Liquidação · Jan – Dez 2026</p></div>
+    <div class="saldo-pill">💰 Saldo Inicial: ${fmt(si)}</div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Total Entradas 12m</div><div class="kpi-value pos">${fmt(tE)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Saídas 12m</div><div class="kpi-value neg">${fmt(tS)}</div></div>
+    <div class="kpi"><div class="kpi-label">Resultado Líquido</div><div class="kpi-value ${tE-tS>=0?'pos':'neg'}">${fmt(tE-tS)}</div></div>
+    <div class="kpi"><div class="kpi-label">Saldo Inicial</div><div class="kpi-value">${fmt(si)}</div><div class="kpi-sub">Base bancária atual</div></div>
+    <div class="kpi"><div class="kpi-label">Saldo Final Dez/26</div><div class="kpi-value ${sf[11]>=0?'pos':'neg'}">${fmt(sf[11])}</div></div>
+    <div class="kpi"><div class="kpi-label">Meses Saldo Neg.</div><div class="kpi-value ${neg>0?'neg':''}">${neg} de 12</div></div>
+    <div class="kpi"><div class="kpi-label">Melhor Mês</div><div class="kpi-value pos">${MESES[mi]}</div><div class="kpi-sub">${fmt(sf[mi])}</div></div>
+    <div class="kpi"><div class="kpi-label">Pior Mês</div><div class="kpi-value neg">${MESES[pi]}</div><div class="kpi-sub">${fmt(sf[pi])}</div></div>
+  </div>
+  <div class="section-label">Saldo Final por Mês</div>
+  <div class="saldo-grid">`;
+
+  const mxA=Math.max(...sf.map(Math.abs),1);
+  sf.forEach((s,i)=>{
+    const pct=Math.abs(s)/mxA*100;
+    const cor=s<0?'var(--vermelho)':s<50000?'var(--amarelo)':'var(--verde)';
+    const st=s<0?'⚠️ Negativo':s<50000?'⚡ Atenção':'✅ OK';
+    const cl=s<0?'neg':s<50000?'warn':'pos';
+    h+=`<div class="saldo-card">
+      <div class="saldo-card-mes">${MESES[i]}</div>
+      <div class="saldo-card-valor ${cl}">${fmt(s)}</div>
+      <div class="saldo-bar-wrap"><div class="saldo-bar" style="width:${pct}%;background:${cor}"></div></div>
+      <div class="saldo-status" style="color:${cor}">${st}</div>
+    </div>`;
+  });
+  h+='</div>';
+
+  // Tabela — si_arr already computed in calcMes()
+  h+=`<div class="section-label" style="margin-top:28px">DFC — Detalhamento Mensal</div>
+  <div class="table-wrap"><table>
+  <thead><tr><th>Descrição</th>${MESES.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+
+  const rows=[
+    {t:'sec', l:'1. Entradas Operacionais'},
+    {t:'row', l:'Vendas – Cartão de Crédito', k:'vendas_cartao'},
+    {t:'row', l:'Vendas – Pix', k:'vendas_pix'},
+    {t:'row', l:'Vendas – Boleto', k:'vendas_boleto'},
+    {t:'row', l:'Vendas – Depósito/TED', k:'vendas_dep'},
+    {t:'sub', l:'Subtotal — Receita Máquinas', ks:['vendas_cartao','vendas_pix','vendas_boleto','vendas_dep']},
+    {t:'row', l:'Outros Recebimentos', k:'outros_rec'},
+    {t:'row', l:'Reembolsos (VONIN → CHOCOLAB)', k:'reembolsos'},
+    {t:'row', l:'(+) Captação / Aportes', k:'captacao'},
+    {t:'tot', l:'TOTAL ENTRADAS OPERACIONAIS', vs:ent},
+    {t:'sec', l:'2. Saídas Operacionais'},
+    {t:'row', l:'Compras / Importação', k:'compras_imp'},
+    {t:'row', l:'Compras / Matéria-Prima', k:'compras_mp'},
+    {t:'row', l:'Impostos de Importação', k:'imp_importacao'},
+    {t:'row', l:'Frete de Importação', k:'frete_imp'},
+    {t:'row', l:'Frete sobre Vendas', k:'frete_vendas'},
+    {t:'sub', l:'Subtotal — Custo Mercadoria', ks:['compras_imp','compras_mp','imp_importacao','frete_imp','frete_vendas','frete_manutencao']},
+    {t:'row', l:'Folha de Pagamento', k:'folha'},
+    {t:'row', l:'FGTS', k:'fgts'},
+    {t:'row', l:'INSS', k:'inss'},
+    {t:'row', l:'Benefícios (Saúde / VT)', k:'beneficios'},
+    {t:'sub', l:'Subtotal — Pessoal e Benefícios', ks:['folha','fgts','inss','beneficios','seguranca']},
+    {t:'row', l:'Simples Nacional / Impostos', k:'simples'},
+    {t:'row', l:'Marketing e Publicidade', k:'marketing'},
+    {t:'row', l:'Feiras e Eventos', k:'feiras'},
+    {t:'row', l:'Contabilidade / Consultoria', k:'contabilidade'},
+    {t:'row', l:'Cartão de Crédito Corporativo', k:'cartao_corp'},
+    {t:'row', l:'Tarifas Bancárias', k:'tarifas'},
+    {t:'row', l:'Devoluções de Vendas', k:'devolucoes'},
+    {t:'tot', l:'TOTAL SAÍDAS OPERACIONAIS', vs:sai},
+    {t:'tot', l:'CAIXA LÍQUIDO OPERACIONAL', vs:liq},
+    {t:'sec', l:'3. Atividades de Financiamento'},
+    {t:'row', l:'Empréstimos e Financiamentos', k:'emprestimos'},
+    {t:'sec', l:'4. Distribuição / Retirada de Sócios'},
+    {t:'row', l:'Distribuição / Retirada de Sócios', k:'distribuicao'},
+    {t:'var', l:'VARIAÇÃO LÍQUIDA DE CAIXA', vs:var_},
+    {t:'si',  l:'(+) Saldo Inicial de Caixa', vs:si_arr},
+    {t:'sf',  l:'SALDO FINAL DE CAIXA', vs:sf},
+  ];
+
+  rows.forEach(r=>{
+    if(r.t==='sec'){
+      h+=`<tr class="r-sec"><td colspan="14">${r.l}</td></tr>`;
+    } else if(r.t==='row'){
+      const vs=DFC[r.k];
+      h+=`<tr><td style="padding-left:20px">${r.l}</td>
+        ${vs.map(v=>`<td>${v===0?'<span style="color:#ccc">—</span>':fmt(v)}</td>`).join('')}
+        <td><strong>${fmt(sum(vs))}</strong></td></tr>`;
+    } else if(r.t==='sub'){
+      const vs=Array.from({length:12},(_,i)=>sum(r.ks.map(k=>n(DFC[k][i]))));
+      h+=`<tr class="r-sub"><td>${r.l}</td>${vs.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(sum(vs))}</td></tr>`;
+    } else if(r.t==='tot'){
+      h+=`<tr class="r-tot"><td>${r.l}</td>${r.vs.map(v=>`<td>${fmt(v,true)}</td>`).join('')}<td>${fmt(sum(r.vs),true)}</td></tr>`;
+    } else if(r.t==='var'){
+      h+=`<tr class="r-var"><td>${r.l}</td>${r.vs.map(v=>`<td>${fmt(v,true)}</td>`).join('')}<td>${fmt(sum(r.vs),true)}</td></tr>`;
+    } else if(r.t==='si'){
+      h+=`<tr class="r-si"><td>${r.l}</td>${r.vs.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>—</td></tr>`;
+    } else if(r.t==='sf'){
+      h+=`<tr class="r-sf"><td>${r.l}</td>${r.vs.map(v=>`<td>${fmt(v,true)}</td>`).join('')}<td>${fmt(r.vs[11],true)}</td></tr>`;
+    }
+  });
+
+  h+=`</tbody></table></div>
+  <p class="footer-note">* Valores em R$. Saldo inicial calculado a partir dos saldos bancários informados na aba "Saldos Bancários" ou lidos automaticamente do Excel importado.</p>`;
+
+  document.getElementById('painel-body').innerHTML=h;
+}
+
+/* ══════════════════════════════════
+   RENDER SALDOS
+══════════════════════════════════ */
+function renderSaldos(){
+  document.getElementById('banco-grid').innerHTML=BANCOS.map(b=>`
+    <div class="banco-card">
+      <div class="banco-nome"><div class="banco-icon">${b.icon}</div>${b.nome}</div>
+      <div>
+        <div class="banco-saldo-label">Saldo Atual (R$)</div>
+        <input class="banco-input" id="b-${b.id}" type="text"
+          value="${b.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}"
+          oninput="updTotal()">
+      </div>
+    </div>`).join('');
+  updTotal();
+}
+function updTotal(){
+  let t=0;
+  BANCOS.forEach(b=>{
+    const el=document.getElementById('b-'+b.id);
+    if(el){ const v=parseFloat(el.value.replace(/\./g,'').replace(',','.'))||0; t+=v; }
+  });
+  document.getElementById('total-saldos').textContent='R$ '+t.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function salvarSaldos(){
+  const bd={};
+  BANCOS.forEach(b=>{
+    const el=document.getElementById('b-'+b.id);
+    const v=el?parseFloat(el.value.replace(/\./g,'').replace(',','.'))||0:b.saldo;
+    b.saldo=v; bd[b.id]=v;
+  });
+  const t=sum(BANCOS.map(b=>b.saldo));
+  localStorage.setItem('cl_bancos',JSON.stringify(bd));
+  localStorage.setItem('cl_saldo',t.toString());
+  if(DFC){renderPainel();renderNec();}
+  alert('✅ Saldos salvos!\nNovo saldo inicial: '+fmt(t));
+}
+
+/* ══════════════════════════════════
+   RENDER NECESSIDADE DIÁRIA
+══════════════════════════════════ */
+
+const FERIADOS = new Set([
+  '2026-01-01','2026-04-03','2026-04-21','2026-05-01',
+  '2026-09-07','2026-10-12','2026-11-02','2026-11-15','2026-12-25'
+]);
+
+function isDiaUtil(d){
+  const dow=d.getDay();
+  if(dow===0||dow===6) return false;
+  const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return !FERIADOS.has(key);
+}
+
+function diasUteisDoMes(ano,mes){
+  const dias=[], d=new Date(ano,mes,1);
+  while(d.getMonth()===mes){ if(isDiaUtil(d)) dias.push(new Date(d)); d.setDate(d.getDate()+1); }
+  return dias;
+}
+
+function renderNec(){
+  if(!DFC){return;}
+  const c=calcMes(); const {ent,sai,var:var_,sf,si_arr}=c;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const i=mesSel, ano=2026;
+  const dias=diasUteisDoMes(ano,i); const nDias=dias.length||1;
+  const siMes=si_arr[i], entMes=ent[i];
+  const saiMes=sai[i]+n(DFC.emprestimos[i])+n(DFC.distribuicao[i]);
+  const sfMes=sf[i];
+  const entDia=entMes/nDias, saiDia=saiMes/nDias;
+  const DSEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const LIM_OK=50000, LIM_AV=20000;
+
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-size:20px;font-weight:700;color:var(--chocolate);letter-spacing:-.02em">Necessidade de caixa — dia a dia</div>
+      <div style="font-size:12px;color:var(--texto-sec);margin-top:3px">Saldo banco + entradas − saídas por dia útil · distribuição proporcional</div>
+    </div>
+    <div class="mes-pills">`;
+  MESES.forEach((m,mi)=>{ h+=`<div class="mes-pill ${mi===i?'active':''}" onclick="selMes(${mi})">${m}</div>`; });
+  h+=`</div></div>`;
+
+  h+=`<div class="kpi-grid" style="margin-bottom:18px">
+    <div class="kpi"><div class="kpi-label">Saldo inicial (banco)</div><div class="kpi-value ${siMes>=0?'pos':'neg'}">${fmt(siMes)}</div></div>
+    <div class="kpi"><div class="kpi-label">Entradas ${MESES[i]}</div><div class="kpi-value pos">${fmt(entMes)}</div></div>
+    <div class="kpi"><div class="kpi-label">Saídas ${MESES[i]}</div><div class="kpi-value neg">${fmt(saiMes)}</div></div>
+    <div class="kpi"><div class="kpi-label">Saldo final projetado</div><div class="kpi-value ${sfMes>=0?'pos':'neg'}">${fmt(sfMes)}</div></div>
+  </div>`;
+
+  h+=`<div class="table-wrap" style="overflow-x:auto"><table style="min-width:640px">
+  <thead><tr>
+    <th style="text-align:left;width:110px">Data</th>
+    <th>Entradas</th><th>Saídas</th><th>Saldo dia</th>
+    <th>Saldo acumulado</th><th style="text-align:center">Status</th>
+  </tr></thead><tbody>`;
+
+  let acum=siMes;
+  const fim=new Date(ano,i+1,0);
+  let d=new Date(ano,i,1);
+  while(d<=fim){
+    const util=isDiaUtil(d), dow=d.getDay();
+    const isFds=dow===0||dow===6;
+    const isHoje=d.getTime()===hoje.getTime();
+    const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0');
+    const dataFmt=dd+'/'+mm, dowLbl=DSEM[dow];
+
+    if(!util){
+      const lbl=isFds?(dow===6?'Sáb':'Dom'):'Feriado';
+      h+=`<tr style="opacity:.3">
+        <td><span style="font-weight:600">${dataFmt}</span><br><span style="font-size:10px;color:var(--texto-sec)">${dowLbl} · ${lbl}</span></td>
+        <td style="color:var(--borda)">—</td><td style="color:var(--borda)">—</td>
+        <td style="color:var(--borda)">—</td><td style="color:var(--borda)">—</td>
+        <td style="text-align:center"><span style="font-size:10px;color:var(--texto-sec)">${lbl}</span></td>
+      </tr>`;
+    } else {
+      acum+=entDia-saiDia;
+      const saldoDia=entDia-saiDia;
+      const st=acum>=LIM_OK?'ok':acum>=LIM_AV?'aviso':'crit';
+      const stLbl=st==='ok'?'OK':st==='aviso'?'Atenção':'Crítico';
+      const stCls=st==='ok'?'pill-ok':st==='aviso'?'pill-aviso':'pill-neg';
+      const clAcum=acum<0?'neg':acum<LIM_AV?'warn':'pos';
+      let rowSt='';
+      if(isHoje) rowSt='background:#FBF5EC;border-left:3px solid #C17C3A';
+      else if(acum<0) rowSt='background:var(--vermelho-lt)';
+      h+=`<tr ${rowSt?'style="'+rowSt+'"':''}>
+        <td><span style="font-weight:600">${dataFmt}</span>${isHoje?' <span style="font-size:9px;background:#C17C3A;color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">hoje</span>':''}<br><span style="font-size:10px;color:var(--texto-sec)">${dowLbl}</span></td>
+        <td class="pos">+${fmt(entDia)}</td>
+        <td class="neg">(${fmt(saiDia)})</td>
+        <td class="${saldoDia>=0?'pos':'neg'}">${fmt(saldoDia,true)}</td>
+        <td class="${clAcum}" style="font-weight:600">${fmt(acum)}</td>
+        <td style="text-align:center"><span class="pill ${stCls}">${stLbl}</span></td>
+      </tr>`;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  h+=`</tbody></table></div>`;
+
+  h+=`<div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texto-sec)"><div style="width:10px;height:10px;border-radius:50%;background:#C17C3A"></div>Hoje</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texto-sec)"><div style="width:10px;height:10px;border-radius:50%;background:var(--verde-lt);border:1px solid var(--verde)"></div>OK — acima de R$ 50k</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texto-sec)"><div style="width:10px;height:10px;border-radius:50%;background:var(--amarelo-lt);border:1px solid var(--amarelo)"></div>Atenção — R$ 20k a R$ 50k</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texto-sec)"><div style="width:10px;height:10px;border-radius:50%;background:var(--vermelho-lt);border:1px solid var(--vermelho)"></div>Crítico — abaixo de R$ 20k</div>
+  </div>
+  <p class="footer-note">* Entradas e saídas distribuídas proporcionalmente pelos dias úteis do mês. Feriados nacionais de 2026 excluídos.</p>`;
+
+  document.getElementById('nec-body').innerHTML=h;
+}
+
+function selMes(i){ mesSel=i; renderNec(); }
+
+
+/* ══════════════════════════════════
+   NAVEGAÇÃO
+══════════════════════════════════ */
+function goTab(id, el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+loadBancos();
+renderSaldos();
+// Auto-load from Google Drive on page open
+carregarDrive();
+</script>
+</body>
+</html>
